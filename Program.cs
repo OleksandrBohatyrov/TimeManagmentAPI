@@ -1,26 +1,31 @@
+﻿using Microsoft.AspNetCore.Authentication.Cookies; // или JwtBearer если JWT
 using Microsoft.EntityFrameworkCore;
 using TimeManagmentAPI.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
+// Добавляем контроллеры
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 
-
-
-builder.Services.AddDbContext<TimeManagementContext>(options =>
-    options.UseMySql(builder.Configuration.GetConnectionString("TimeManagementDatabase"),
-    new MySqlServerVersion(new Version(8, 0, 23))));
-
-
+// Добавляем Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Конфигурация Entity Framework с MySQL
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContext<TimeManagementContext>(options =>
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 25))));
+
+// Настройка аутентификации
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/api/Users/login"; // путь к вашему методу логина
+    });
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Настройка HTTP запросов
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -29,8 +34,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Включаем аутентификацию и авторизацию
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
 app.Run();
