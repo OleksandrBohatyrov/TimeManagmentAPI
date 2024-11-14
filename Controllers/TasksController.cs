@@ -27,16 +27,14 @@ namespace TimeManagmentAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateTask(TimeTask task)
         {
-
             if (User.Identity?.IsAuthenticated != true)
             {
                 return Unauthorized();
             }
 
-          
             if (User.Identity.Name != task.UserId.ToString() && User.FindFirst("Role")?.Value != "Admin")
             {
-                return Forbid(); 
+                return Forbid();
             }
 
             _context.Tasks.Add(task);
@@ -61,6 +59,30 @@ namespace TimeManagmentAPI.Controllers
             _context.Tasks.Remove(task);
             await _context.SaveChangesAsync();
             return Ok();
+        }
+
+        // PUT: api/Tasks/{id}
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateTask(int id, TimeTask updatedTask)
+        {
+            var existingTask = await _context.Tasks.FindAsync(id);
+            if (existingTask == null)
+            {
+                return NotFound();
+            }
+
+          
+            existingTask.Title = updatedTask.Title;
+            existingTask.Description = updatedTask.Description;
+            existingTask.ProjectId = updatedTask.ProjectId;
+            existingTask.UserId = updatedTask.UserId;
+            existingTask.StartTime = updatedTask.StartTime;
+            existingTask.EndTime = updatedTask.EndTime;
+            existingTask.IsCompleted = updatedTask.IsCompleted;
+            existingTask.IsConfirmed = updatedTask.IsConfirmed;
+
+            await _context.SaveChangesAsync();
+            return Ok(existingTask);
         }
     }
 }

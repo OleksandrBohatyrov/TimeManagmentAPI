@@ -38,14 +38,12 @@ namespace TimeManagmentAPI.Controllers
         [HttpPost("login")]
         public IActionResult Login(User userInput)
         {
-      
             var user = _context.Users.SingleOrDefault(u => u.Username == userInput.Username);
             if (user == null)
             {
                 return Unauthorized("Invalid Username or Password");
             }
 
-  
             var passwordVerification = new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, userInput.Password);
             if (passwordVerification != PasswordVerificationResult.Success)
             {
@@ -53,6 +51,28 @@ namespace TimeManagmentAPI.Controllers
             }
 
             return Ok("Login successful");
+        }
+
+        // PUT: api/Users/{id}
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateUser(int id, User updatedUser)
+        {
+            var existingUser = await _context.Users.FindAsync(id);
+            if (existingUser == null)
+            {
+                return NotFound();
+            }
+
+            existingUser.Username = updatedUser.Username;
+            if (!string.IsNullOrEmpty(updatedUser.Password))
+            {
+                existingUser.PasswordHash = new PasswordHasher<User>().HashPassword(existingUser, updatedUser.Password);
+            }
+
+            existingUser.Role = updatedUser.Role;
+
+            await _context.SaveChangesAsync();
+            return Ok(existingUser);
         }
     }
 }
