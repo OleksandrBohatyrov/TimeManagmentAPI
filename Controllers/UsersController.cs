@@ -19,16 +19,22 @@ namespace TimeManagmentAPI.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register(User user)
+        public async Task<IActionResult> Register([FromBody] RegisterUserRequest registerUserRequest)
         {
-            var existingUser = _context.Users.SingleOrDefault(u => u.Username == user.Username);
+            var existingUser = _context.Users.SingleOrDefault(u => u.Username == registerUserRequest.Username);
             if (existingUser != null)
             {
                 return BadRequest("Username already exists");
             }
 
-            user.PasswordHash = new PasswordHasher<User>().HashPassword(user, user.Password);
-            user.Password = null;
+            var user = new User
+            {
+                Username = registerUserRequest.Username,
+                Email = registerUserRequest.Email,
+                Role = registerUserRequest.Role
+            };
+
+            user.PasswordHash = new PasswordHasher<User>().HashPassword(user, registerUserRequest.Password);
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
@@ -36,17 +42,15 @@ namespace TimeManagmentAPI.Controllers
         }
 
         [HttpPost("login")]
-        public IActionResult Login(User userInput)
+        public IActionResult Login([FromBody] UserLoginRequest userLogin)
         {
-      
-            var user = _context.Users.SingleOrDefault(u => u.Username == userInput.Username);
+            var user = _context.Users.SingleOrDefault(u => u.Username == userLogin.Username);
             if (user == null)
             {
                 return Unauthorized("Invalid Username or Password");
             }
 
-  
-            var passwordVerification = new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, userInput.Password);
+            var passwordVerification = new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, userLogin.Password);
             if (passwordVerification != PasswordVerificationResult.Success)
             {
                 return Unauthorized("Invalid Username or Password");
@@ -55,4 +59,7 @@ namespace TimeManagmentAPI.Controllers
             return Ok("Login successful");
         }
     }
+
+
+
 }
