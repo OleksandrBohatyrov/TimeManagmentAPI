@@ -61,7 +61,7 @@ namespace TimeManagmentAPI.Controllers
                 return Unauthorized("Invalid Username or Password");
             }
 
-            // Генерация JWT-токена
+        
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]);
             var tokenDescriptor = new SecurityTokenDescriptor
@@ -77,7 +77,6 @@ namespace TimeManagmentAPI.Controllers
             var token = tokenHandler.CreateToken(tokenDescriptor);
             var tokenString = tokenHandler.WriteToken(token);
 
-            // Сохранение токена в куки
             HttpContext.Response.Cookies.Append("AuthToken", tokenString, new CookieOptions
             {
                 HttpOnly = true,
