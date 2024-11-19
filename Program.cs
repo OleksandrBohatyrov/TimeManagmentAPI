@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.EntityFrameworkCore;
-using System.Text;
+﻿using Microsoft.EntityFrameworkCore;
 using TimeManagmentAPI.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,35 +7,15 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Настройка подключения к базе данных MySQL
 builder.Services.AddDbContext<TimeManagementContext>(options =>
     options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
     new MySqlServerVersion(new Version(8, 0, 25))));
 
-var jwtKey = "OleksandrBohatyrov00011233";
-var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
-            ValidateIssuer = false,
-            ValidateAudience = false
-        };
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = context =>
-            {
-                context.Token = context.Request.Cookies["AuthToken"];
-                return Task.CompletedTask;
-            }
-    };
-    });
-
+// Создание и настройка приложения
 var app = builder.Build();
 
+// Включение Swagger только в режиме разработки
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -47,8 +24,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication();
-app.UseAuthorization();
-
 app.MapControllers();
+
 app.Run();

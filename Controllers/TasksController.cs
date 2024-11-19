@@ -1,16 +1,13 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using TimeManagmentAPI.Data;
 using TimeManagmentAPI.Models;
+using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
-using System.Linq;
-using System.Security.Claims;
 
 namespace TimeManagmentAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
     public class TasksController : ControllerBase
     {
         private readonly TimeManagementContext _context;
@@ -29,23 +26,41 @@ namespace TimeManagmentAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateTask(TimeTask task)
         {
-            if (User.Identity?.IsAuthenticated != true)
-            {
-                return Unauthorized();
-            }
-
-            if (User.FindFirst(ClaimTypes.Name)?.Value != task.UserId.ToString() && User.FindFirst(ClaimTypes.Role)?.Value != "Admin")
-            {
-                return Forbid();
-            }
-
             _context.Tasks.Add(task);
             await _context.SaveChangesAsync();
             return Ok(task);
         }
 
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateTask(int id, TimeTask updatedTask)
+        {
+            if (id != updatedTask.Id)
+            {
+                return BadRequest("Task ID mismatch");
+            }
+
+            var existingTask = await _context.Tasks.FindAsync(id);
+            if (existingTask == null)
+            {
+                return NotFound("Task not found");
+            }
+
+            existingTask.Title = updatedTask.Title;
+            existingTask.Description = updatedTask.Description;
+            existingTask.ProjectId = updatedTask.ProjectId;
+            existingTask.UserId = updatedTask.UserId;
+            existingTask.StartTime = updatedTask.StartTime;
+            existingTask.EndTime = updatedTask.EndTime;
+            existingTask.IsCompleted = updatedTask.IsCompleted;
+            existingTask.IsConfirmed = updatedTask.IsConfirmed;
+
+            _context.Entry(existingTask).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+
+            return Ok(existingTask);
+        }
+
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteTask(int id)
         {
             var task = await _context.Tasks.FindAsync(id);

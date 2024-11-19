@@ -41,7 +41,6 @@ namespace TimeManagmentAPI.Controllers
             };
 
             user.PasswordHash = new PasswordHasher<User>().HashPassword(user, registerUserDto.Password);
-
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
             return Ok("User Registered Successfully");
@@ -69,16 +68,16 @@ namespace TimeManagmentAPI.Controllers
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-            new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.Role, user.Role)
-        }),
+                    new Claim(ClaimTypes.Name, user.Username),
+                    new Claim(ClaimTypes.Role, user.Role)
+                }),
                 Expires = DateTime.UtcNow.AddHours(1),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
             var tokenString = tokenHandler.WriteToken(token);
 
-            // Добавление токена в куки
+            // Сохранение токена в куки
             HttpContext.Response.Cookies.Append("AuthToken", tokenString, new CookieOptions
             {
                 HttpOnly = true,
@@ -86,10 +85,8 @@ namespace TimeManagmentAPI.Controllers
                 SameSite = SameSiteMode.Strict
             });
 
-            return Ok(new { Token = tokenString });
+            return Ok("Login successful");
         }
-
-
     }
 
     public class RegisterUserDto
