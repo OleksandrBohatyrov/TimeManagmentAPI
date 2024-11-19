@@ -1,31 +1,41 @@
-﻿using Microsoft.AspNetCore.Authentication.Cookies; // или JwtBearer если JWT
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
 using TimeManagmentAPI.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Добавляем контроллеры
 builder.Services.AddControllers();
 
-// Добавляем Swagger/OpenAPI
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Конфигурация Entity Framework с MySQL
+
 builder.Services.AddDbContext<TimeManagementContext>(options =>
     options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
     new MySqlServerVersion(new Version(8, 0, 25))));
 
-// Настройка аутентификации
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
+var jwtKey = "OleksandrBohatyrov00011233";  
+var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        options.LoginPath = "/api/Users/login"; // путь к вашему методу логина
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(keyBytes)
+        };
     });
 
 var app = builder.Build();
 
-// Настройка HTTP запросов
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -34,7 +44,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Включаем аутентификацию и авторизацию
+
 app.UseAuthentication();
 app.UseAuthorization();
 
