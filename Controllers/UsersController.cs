@@ -41,6 +41,7 @@ namespace TimeManagmentAPI.Controllers
             };
 
             user.PasswordHash = new PasswordHasher<User>().HashPassword(user, registerUserDto.Password);
+
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
             return Ok("User Registered Successfully");
@@ -64,12 +65,6 @@ namespace TimeManagmentAPI.Controllers
             // Генерация JWT-токена
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]);
-
-            if (key.Length < 16)
-            {
-                throw new ArgumentOutOfRangeException("Jwt:Key", "Key must be at least 16 characters long");
-            }
-
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
@@ -83,8 +78,17 @@ namespace TimeManagmentAPI.Controllers
             var token = tokenHandler.CreateToken(tokenDescriptor);
             var tokenString = tokenHandler.WriteToken(token);
 
+            // Добавление токена в куки
+            HttpContext.Response.Cookies.Append("AuthToken", tokenString, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict
+            });
+
             return Ok(new { Token = tokenString });
         }
+
 
     }
 
