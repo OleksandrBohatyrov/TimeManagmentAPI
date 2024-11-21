@@ -2,7 +2,10 @@
 using TimeManagmentAPI.Data;
 using TimeManagmentAPI.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
+using System.Linq; // Использование LINQ
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using System.Threading.Tasks; // Явное использование System.Threading.Tasks
 
 namespace TimeManagmentAPI.Controllers
 {
@@ -17,22 +20,48 @@ namespace TimeManagmentAPI.Controllers
             _context = context;
         }
 
+        // Получение всех задач (для администратора или общего доступа)
         [HttpGet]
         public IActionResult GetTasks()
         {
-            return Ok(_context.Tasks.ToList());
+            var tasks = _context.Tasks.ToList();
+            return Ok(tasks);
         }
 
+        // Добавление задачи (доступно только для Админа)
+        [HttpPost("addTask")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AddTask([FromBody] ManagedTask task) // Изменено на ManagedTask
+        {
+            _context.Tasks.Add(task);
+            await _context.SaveChangesAsync();
+            return Ok("Task added successfully");
+        }
+
+        // Получение задач конкретного пользователя (требуется авторизация)
+        [HttpGet("userTasks")]
+        [Authorize]
+        public IActionResult GetUserTasks()
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var userTasks = _context.Tasks.Where(t => t.UserId == userId).ToList();
+            return Ok(userTasks);
+        }
+
+        // Создание задачи (может использоваться обычным пользователем)
         [HttpPost]
-        public async Task<IActionResult> CreateTask(TimeTask task)
+        [Authorize]
+        public async Task<IActionResult> CreateTask([FromBody] ManagedTask task)
         {
             _context.Tasks.Add(task);
             await _context.SaveChangesAsync();
             return Ok(task);
         }
 
+        // Обновление задачи по ID
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateTask(int id, TimeTask updatedTask)
+        [Authorize]
+        public async Task<IActionResult> UpdateTask(int id, [FromBody] ManagedTask updatedTask)
         {
             if (id != updatedTask.Id)
             {
@@ -45,6 +74,7 @@ namespace TimeManagmentAPI.Controllers
                 return NotFound("Task not found");
             }
 
+            // Обновляем поля задачи
             existingTask.Title = updatedTask.Title;
             existingTask.Description = updatedTask.Description;
             existingTask.ProjectId = updatedTask.ProjectId;
@@ -60,7 +90,9 @@ namespace TimeManagmentAPI.Controllers
             return Ok(existingTask);
         }
 
+        // Удаление задачи по ID (доступно только для Админа)
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteTask(int id)
         {
             var task = await _context.Tasks.FindAsync(id);

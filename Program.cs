@@ -1,4 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
+using System.Text;
 using TimeManagmentAPI.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,23 +11,37 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Настройка подключения к базе данных MySQL
+// Добавьте поддержку CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAllOrigins",
+        builder =>
+        {
+            builder.AllowAnyOrigin()
+                   .AllowAnyMethod()
+                   .AllowAnyHeader();
+        });
+});
+
 builder.Services.AddDbContext<TimeManagementContext>(options =>
     options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
     new MySqlServerVersion(new Version(8, 0, 25))));
 
-// Создание и настройка приложения
 var app = builder.Build();
 
-// Включение Swagger только в режиме разработки
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();  
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
 
-app.MapControllers();
+// Включаем CORS для всех запросов
+app.UseCors("AllowAllOrigins");
 
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
 app.Run();

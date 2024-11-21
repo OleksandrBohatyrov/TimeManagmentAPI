@@ -49,28 +49,33 @@ namespace TimeManagmentAPI.Controllers
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginUserDto loginUserDto)
         {
+            // Ищем пользователя по имени
             var user = _context.Users.SingleOrDefault(u => u.Username == loginUserDto.Username);
             if (user == null)
             {
+                Console.WriteLine("Пользователь не найден: " + loginUserDto.Username);
                 return Unauthorized("Invalid Username or Password");
             }
 
+            // Проверяем пароль
             var passwordVerification = new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, loginUserDto.Password);
             if (passwordVerification != PasswordVerificationResult.Success)
             {
+                Console.WriteLine("Ошибка верификации пароля для пользователя: " + loginUserDto.Username);
                 return Unauthorized("Invalid Username or Password");
             }
 
-        
+            // Генерация токена
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]);
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-                    new Claim(ClaimTypes.Name, user.Username),
-                    new Claim(ClaimTypes.Role, user.Role)
-                }),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.Username),
+            new Claim(ClaimTypes.Role, user.Role)
+        }),
                 Expires = DateTime.UtcNow.AddHours(1),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
@@ -84,8 +89,19 @@ namespace TimeManagmentAPI.Controllers
                 SameSite = SameSiteMode.Strict
             });
 
-            return Ok("Login successful");
+            return Ok(new
+            {
+                user = new
+                {
+                    user.Id,
+                    user.Username,
+                    user.Email,
+                    user.Role
+                },
+                token = tokenString
+            });
         }
+
     }
 
     public class RegisterUserDto

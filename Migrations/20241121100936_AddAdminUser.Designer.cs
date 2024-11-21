@@ -11,8 +11,8 @@ using TimeManagmentAPI.Data;
 namespace TimeManagmentAPI.Migrations
 {
     [DbContext(typeof(TimeManagementContext))]
-    [Migration("20241119091327_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20241121100936_AddAdminUser")]
+    partial class AddAdminUser
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -21,7 +21,7 @@ namespace TimeManagmentAPI.Migrations
                 .HasAnnotation("ProductVersion", "6.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
-            modelBuilder.Entity("TimeManagmentAPI.Models.Project", b =>
+            modelBuilder.Entity("TimeManagmentAPI.Models.ManagedTask", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -31,26 +31,7 @@ namespace TimeManagmentAPI.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Projects");
-                });
-
-            modelBuilder.Entity("TimeManagmentAPI.Models.TimeTask", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime?>("EndTime")
+                    b.Property<DateTime>("EndTime")
                         .HasColumnType("datetime(6)");
 
                     b.Property<bool>("IsCompleted")
@@ -77,6 +58,25 @@ namespace TimeManagmentAPI.Migrations
                     b.ToTable("Tasks");
                 });
 
+            modelBuilder.Entity("TimeManagmentAPI.Models.Project", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Projects");
+                });
+
             modelBuilder.Entity("TimeManagmentAPI.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -84,10 +84,6 @@ namespace TimeManagmentAPI.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("longtext");
 
@@ -106,6 +102,16 @@ namespace TimeManagmentAPI.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Email = "admin@example.com",
+                            PasswordHash = "AQAAAAEAACcQAAAAEIAj5ZDb6jgtg9R1fBTLmWAwiHhlolBoguMmBuygW3zQtGCEJgoP9A07BEF+ToAoxQ==",
+                            Role = "Admin",
+                            Username = "admin"
+                        });
                 });
 #pragma warning restore 612, 618
         }
