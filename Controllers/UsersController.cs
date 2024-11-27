@@ -1,13 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using TimeManagmentAPI.Data;
-using TimeManagmentAPI.Models;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
-using System.Linq;
+using System.Collections.Generic;
+using TimeManagmentAPI.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
+using System.Security.Claims;
 
 namespace TimeManagmentAPI.Controllers
 {
@@ -15,96 +15,75 @@ namespace TimeManagmentAPI.Controllers
     [ApiController]
     public class UsersController : ControllerBase
     {
-        private readonly TimeManagementContext _context;
-        private readonly IConfiguration _configuration;
+        private readonly UserManager<User> _userManager;
+        private readonly SignInManager<User> _signInManager;
 
-        public UsersController(TimeManagementContext context, IConfiguration configuration)
+        public UsersController(UserManager<User> userManager, SignInManager<User> signInManager)
         {
-            _context = context;
-            _configuration = configuration;
+            _userManager = userManager;
+            _signInManager = signInManager;
         }
 
+        // Регистрация пользователя
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterUserDto registerUserDto)
+        public async Task<IActionResult> Register([FromBody] RegisterModel model)
         {
-            var existingUser = _context.Users.SingleOrDefault(u => u.Username == registerUserDto.Username);
-            if (existingUser != null)
-            {
-                return BadRequest("Username already exists");
-            }
-
             var user = new User
             {
-                Username = registerUserDto.Username,
-                Email = registerUserDto.Email,
-                Role = registerUserDto.Role
+                UserName = model.Username,
+                Email = model.Email,
+                Role = model.Role // если у вас есть роль
             };
+            var result = await _userManager.CreateAsync(user, model.Password);
 
-            user.PasswordHash = new PasswordHasher<User>().HashPassword(user, registerUserDto.Password);
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-            return Ok("User Registered Successfully");
+            if (result.Succeeded)
+            {
+                return Ok("User registered successfully");
+            }
+
+            return BadRequest(result.Errors);
         }
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] LoginUserDto loginUserDto)
+        public async Task<IActionResult> Login([FromBody] LoginModel model)
         {
-            // Ищем пользователя по имени
-            var user = _context.Users.SingleOrDefault(u => u.Username == loginUserDto.Username);
-            if (user == null)
-            {
-                Console.WriteLine("Пользователь не найден: " + loginUserDto.Username);
-                return Unauthorized("Invalid Username or Password");
-            }
+            var user = await _userManager.FindByNameAsync(model.Username);
 
-            // Проверяем пароль
-            var passwordVerification = new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, loginUserDto.Password);
-            if (passwordVerification != PasswordVerificationResult.Success)
+            if (user != null)
             {
-                Console.WriteLine("Ошибка верификации пароля для пользователя: " + loginUserDto.Username);
-                return Unauthorized("Invalid Username or Password");
-            }
+                var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, lockoutOnFailure: false);
 
-            // Генерация токена
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]);
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[]
+                if (result.Succeeded)
                 {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.Role, user.Role)
-        }),
-                Expires = DateTime.UtcNow.AddHours(1),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                    // Вход пользователя с использованием cookie
+                    var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, user.UserName),
+                new Claim(ClaimTypes.Role, user.Role)
             };
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            var tokenString = tokenHandler.WriteToken(token);
+                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
 
-            HttpContext.Response.Cookies.Append("AuthToken", tokenString, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict
-            });
+                    return Ok(new { username = user.UserName, role = user.Role });
+                }
+            }
 
-            return Ok(new
-            {
-                user = new
-                {
-                    user.Id,
-                    user.Username,
-                    user.Email,
-                    user.Role
-                },
-                token = tokenString
-            });
+            return Unauthorized("Invalid login attempt");
+        }
+
+
+
+        [HttpGet("allUsers")]
+        [Authorize(Roles = "Admin")] // Только для Admin
+        public async Task<IActionResult> GetAllUsers()
+        {
+            var users = await _userManager.Users.ToListAsync();
+            return Ok(users);
         }
 
     }
 
-    public class RegisterUserDto
+    public class RegisterModel
     {
         public string Username { get; set; }
         public string Email { get; set; }
@@ -112,7 +91,7 @@ namespace TimeManagmentAPI.Controllers
         public string Role { get; set; }
     }
 
-    public class LoginUserDto
+    public class LoginModel
     {
         public string Username { get; set; }
         public string Password { get; set; }
