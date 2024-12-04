@@ -15,11 +15,12 @@ builder.Services.AddSwaggerGen();
 // Настраиваем CORS (если требуется)
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAllOrigins", policy =>
+    options.AddPolicy("AllowReactApp", builder =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        builder.WithOrigins("http://localhost:3000") // Адрес React-приложения
+               .AllowAnyMethod()
+               .AllowAnyHeader()
+               .AllowCredentials();
     });
 });
 
@@ -31,6 +32,16 @@ builder.Services.AddDbContext<TimeManagementContext>(options =>
 builder.Services.AddIdentity<User, IdentityRole>()
     .AddEntityFrameworkStores<TimeManagementContext>()
     .AddDefaultTokenProviders();
+
+// Добавление службы сессий
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true; // Обязательно для GDPR
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // Время жизни сессии
+});
+
 
 var app = builder.Build();
 
@@ -45,9 +56,10 @@ if (app.Environment.IsDevelopment())
 }
 
 // Включаем CORS
-app.UseCors("AllowAllOrigins");
+app.UseCors("AllowReactApp");
 
 // Настраиваем маршрутизацию и контроллеры
+app.UseSession();
 app.UseRouting();
 app.UseAuthorization();
 app.MapControllers();

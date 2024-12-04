@@ -79,19 +79,18 @@ namespace TimeManagmentAPI.Controllers
 
                 if (passwordValid)
                 {
-                    // Создаем новую сессию и сохраняем данные пользователя
+                    // Сохраняем данные пользователя в сессии
                     HttpContext.Session.SetString("UserId", user.Id);
                     HttpContext.Session.SetString("UserRole", user.Role);
 
-                    // Возвращаем идентификатор сессии клиенту
-                    var sessionId = HttpContext.Session.Id;
-
-                    return Ok(new { sessionId, username = user.UserName, role = user.Role });
+                    // Возвращаем успешный результат
+                    return Ok(new { userId = user.Id, role = user.Role });
                 }
             }
 
             return Unauthorized("Invalid login attempt");
         }
+
 
         // Получение всех пользователей (только для админа)
         [HttpGet("allUsers")]
