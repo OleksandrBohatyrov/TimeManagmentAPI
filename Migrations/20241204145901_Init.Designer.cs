@@ -11,8 +11,8 @@ using TimeManagmentAPI.Data;
 namespace TimeManagmentAPI.Migrations
 {
     [DbContext(typeof(TimeManagementContext))]
-    [Migration("20241127093939_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20241204145901_Init")]
+    partial class Init
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

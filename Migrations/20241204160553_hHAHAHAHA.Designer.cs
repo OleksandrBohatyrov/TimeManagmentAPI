@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TimeManagmentAPI.Data;
 
@@ -10,9 +11,10 @@ using TimeManagmentAPI.Data;
 namespace TimeManagmentAPI.Migrations
 {
     [DbContext(typeof(TimeManagementContext))]
-    partial class TimeManagementContextModelSnapshot : ModelSnapshot
+    [Migration("20241204160553_hHAHAHAHA")]
+    partial class hHAHAHAHA
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
