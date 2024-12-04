@@ -18,40 +18,23 @@ namespace TimeManagmentAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetProjects([FromQuery] string role)
+        public async Task<IActionResult> GetProjects()
         {
-            if (role != "Admin")
-            {
-                return Unauthorized("Only admin can access this endpoint.");
-            }
-
             var projects = await _context.Projects.ToListAsync();
             return Ok(projects);
         }
 
-        // Создание проекта (только для админа)
         [HttpPost]
-        public async Task<IActionResult> CreateProject([FromQuery] string role, [FromBody] Project project)
+        public async Task<IActionResult> CreateProject([FromBody] Project project)
         {
-            if (role != "Admin")
-            {
-                return Unauthorized("Only admin can create a project.");
-            }
-
             _context.Projects.Add(project);
             await _context.SaveChangesAsync();
             return Ok(project);
         }
 
-        // Обновление проекта (только для админа)
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateProject(int id, Project updatedProject)
+        public async Task<IActionResult> UpdateProject(int id, [FromBody] Project updatedProject)
         {
-            if (!IsAuthorized("Admin"))
-            {
-                return Unauthorized("Access denied");
-            }
-
             if (id != updatedProject.Id)
             {
                 return BadRequest("Project ID mismatch");
@@ -72,15 +55,9 @@ namespace TimeManagmentAPI.Controllers
             return Ok(existingProject);
         }
 
-        // Удаление проекта (только для админа)
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProject(int id)
         {
-            if (!IsAuthorized("Admin"))
-            {
-                return Unauthorized("Access denied");
-            }
-
             var project = await _context.Projects.FindAsync(id);
             if (project == null)
             {
@@ -90,21 +67,6 @@ namespace TimeManagmentAPI.Controllers
             _context.Projects.Remove(project);
             await _context.SaveChangesAsync();
             return Ok();
-        }
-
-        // Метод для проверки авторизации
-        private bool IsAuthorized(string requiredRole)
-        {
-            var sessionId = HttpContext.Request.Headers["SessionId"].ToString();
-            if (string.IsNullOrEmpty(sessionId))
-            {
-                return false;
-            }
-
-            HttpContext.Session.LoadAsync().Wait();
-
-            var userRole = HttpContext.Session.GetString("UserRole");
-            return userRole == requiredRole;
         }
     }
 }

@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 using TimeManagmentAPI.Models;
 using Microsoft.AspNetCore.Identity;
 
@@ -18,25 +17,20 @@ namespace TimeManagmentAPI.Controllers
             _userManager = userManager;
         }
 
-
-
         [HttpPost("addAdmin")]
         public async Task<IActionResult> AddAdmin([FromBody] AdminRequest model)
         {
-            // Создаем объект пользователя
             var admin = new User
             {
                 Id = model.Id,
                 UserName = model.UserName,
                 Email = model.Email,
-                Role = model.Role
+                Role = "Admin"
             };
 
-            // Хешируем пароль
             var passwordHasher = new PasswordHasher<User>();
             admin.PasswordHash = passwordHasher.HashPassword(admin, model.Password);
 
-            // Сохраняем пользователя в базе данных через UserManager
             var result = await _userManager.CreateAsync(admin);
             if (result.Succeeded)
             {
@@ -46,8 +40,6 @@ namespace TimeManagmentAPI.Controllers
             return BadRequest(result.Errors);
         }
 
-
-        // Регистрация пользователя
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterUserRequest model)
         {
@@ -55,7 +47,7 @@ namespace TimeManagmentAPI.Controllers
             {
                 UserName = model.Username,
                 Email = model.Email,
-                Role = model.Role // если у вас есть роль
+                Role = "User"
             };
             var result = await _userManager.CreateAsync(user, model.Password);
 
@@ -67,7 +59,6 @@ namespace TimeManagmentAPI.Controllers
             return BadRequest(result.Errors);
         }
 
-        // Вход пользователя
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] UserLoginRequest model)
         {
@@ -79,11 +70,6 @@ namespace TimeManagmentAPI.Controllers
 
                 if (passwordValid)
                 {
-                    // Сохраняем данные пользователя в сессии
-                    HttpContext.Session.SetString("UserId", user.Id);
-                    HttpContext.Session.SetString("UserRole", user.Role);
-
-                    // Возвращаем успешный результат
                     return Ok(new { userId = user.Id, role = user.Role });
                 }
             }
@@ -91,45 +77,19 @@ namespace TimeManagmentAPI.Controllers
             return Unauthorized("Invalid login attempt");
         }
 
-
-        // Получение всех пользователей (только для админа)
         [HttpGet("allUsers")]
         public async Task<IActionResult> GetAllUsers()
         {
-            if (!IsAuthorized("Admin"))
-            {
-                return Unauthorized("Access denied");
-            }
-
             var users = await _userManager.Users.ToListAsync();
             return Ok(users);
         }
-
-        // Метод для проверки авторизации
-        private bool IsAuthorized(string requiredRole)
-        {
-            var sessionId = HttpContext.Request.Headers["SessionId"].ToString();
-            if (string.IsNullOrEmpty(sessionId))
-            {
-                return false;
-            }
-
-            HttpContext.Session.LoadAsync().Wait();
-
-            var userRole = HttpContext.Session.GetString("UserRole");
-            return userRole == requiredRole;
-        }
-
-
 
         public class AdminRequest
         {
             public string Id { get; set; }
             public string UserName { get; set; }
             public string Email { get; set; }
-            public string Role { get; set; }
             public string Password { get; set; }
         }
-
     }
 }
