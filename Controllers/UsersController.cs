@@ -47,8 +47,9 @@ namespace TimeManagmentAPI.Controllers
             {
                 UserName = model.Username,
                 Email = model.Email,
-                Role = "User"
+                Role = model.Role 
             };
+
             var result = await _userManager.CreateAsync(user, model.Password);
 
             if (result.Succeeded)
@@ -58,6 +59,7 @@ namespace TimeManagmentAPI.Controllers
 
             return BadRequest(result.Errors);
         }
+
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] UserLoginRequest model)
@@ -70,12 +72,16 @@ namespace TimeManagmentAPI.Controllers
 
                 if (passwordValid)
                 {
+                    HttpContext.Session.SetString("UserId", user.Id);
+                    HttpContext.Session.SetString("UserRole", user.Role);
+
                     return Ok(new { userId = user.Id, role = user.Role });
                 }
             }
 
             return Unauthorized("Invalid login attempt");
         }
+
 
         [HttpGet("allUsers")]
         public async Task<IActionResult> GetAllUsers()
